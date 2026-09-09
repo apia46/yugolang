@@ -4,7 +4,9 @@ Here are some of its features:
 ## Syntax
 The symbols (, {, and [ are equivalent.
 ```
+print("hi");
 print{"hi"};
+print["hi"];
 ```
 They are also unnecessary for function calls, which simply consume the next expression.
 ```
