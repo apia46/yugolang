@@ -4,7 +4,7 @@ Here are some of its features:
 ## Syntax
 Yugolang uses a C style syntax that you will probably be familiar with.
 ```
-print("hi);
+print("hi");
 ```
 The symbols (, {, and [ are equivalent.
 ```
