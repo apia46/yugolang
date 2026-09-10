@@ -70,11 +70,14 @@ if true "hello" else "bye";
 A statement like this will be parsed by replacing functions and their arguments with their return values, in order of decreasing function priority.<br>
 ```
 if true "hello" else "bye";
-// if is a function that consumes right. it finds true and returns a function to evaluate the result
+// if is a function that consumes rightwards
+// it finds true and returns a function to evaluate the result
 |x| {Some(x)} "hello" else "bye";
-// this wraps the "hi" in an option enum, but if it found false then it would simply be replaced with the None variant
+// this wraps the "hi" in an option enum,
+// but if it found false then it would simply be replaced with the None variant
 Some("hello") else "bye";
-// else consumes left, finds a Some and returns a function to discard the else block
+// else consumes leftwards, finds a Some,
+// and returns a function to discard the else block
 |x| {"hello"} "bye";
 // finally, "bye" is discarded
 "hello";
@@ -85,7 +88,9 @@ This prevents functions with side-effects being called when they are to be skipp
 ```
 if (2 + 3 == 4) {print("hello")};
 // if recieves (2 + 3 == 4), which it evaluates
-// note that if the parentheses were not there, the operators would evaluate first as they have a higher priority than if, and if would simply recieve false
+// note that if the parentheses were not there,
+// the operators would evaluate first as they have a higher priority than if,
+// and the if would simply recieve false
 |x| {None} {print("hello")};
 // the |x| {None} function recieves {print("hello")}, which it throws away without evaluating
 None;
