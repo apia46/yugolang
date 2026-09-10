@@ -37,8 +37,8 @@ You can configure the compiler lint `function_called_in_wrong_direction` to warn
 ```
 Functions have different priorities. If there is a chain of functions and expressions, they are resolved in order of decreasing priority.
 ```
-// * and its return value have priority -5
-// + and its return value have priority -6
+// * and its return value have priority X
+// + and its return value have priority X+1
 // Therefore,
 3 + 2 * 7;
 // is parsed like so:
@@ -66,6 +66,7 @@ let add = func (a:int, b:int) -> int {
 In Yugolang, a statement is a set of expressions and functions, ending with a semicolon.<br>
 ```
 if true "hello" else "bye";
+// fn, expr, expr, fn, expr
 ```
 A statement like this will be parsed by replacing functions and their arguments with their return values, in order of decreasing function priority.<br>
 ```
@@ -84,7 +85,7 @@ Some("hello") else "bye";
 ```
 ## Lazy Evaluation
 Scopes are passed directly to functions, and are evaluated only when they are needed.<br>
-This prevents functions with side-effects being called when they are to be skipped over.
+This prevents functions with side-effects from being called when they are to be skipped over.
 ```
 if (2 + 3 == 4) {print("hello")};
 // if recieves (2 + 3 == 4), which it evaluates
