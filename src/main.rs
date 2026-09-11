@@ -1,5 +1,7 @@
 use clap::Parser;
+
 mod lexer;
+mod parser;
 
 #[derive(Parser, Debug)]
 #[command()]
@@ -10,6 +12,7 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    let result = lexer::tokenize(&args.input).unwrap();
-    print!("{result:?}");
+    let tokens = lexer::tokenize(&args.input).unwrap();
+    let parse = parser::parse(tokens).unwrap();
+    print!("{parse:?}");
 }

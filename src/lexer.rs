@@ -1,5 +1,3 @@
-#![expect(dead_code)]
-
 use peek_again::Peekable;
 
 #[derive(Debug)]
@@ -11,7 +9,7 @@ pub enum Token {
     Semicolon,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum BraceType {
     Paren,
     Square,
@@ -37,7 +35,7 @@ pub fn tokenize(input:&str) -> Result<Vec<Token>, TokenizeError> {
     let mut input = Peekable::new(input.chars());
     let mut state = State::Idle;
     loop {
-        let Some(char) = input.next() else {break};
+        let Some(char) = input.next() else { break };
         let peek = input.peek().get().copied();
         let peek_2 = input.peek_2().copied();
         update_state(char, peek, &mut state)?;
@@ -177,7 +175,7 @@ fn complete_token(state:State, out:&mut Vec<Token>) {
         State::SymbolIdentifier { buffer }
         | State::WordIdentifier { buffer } => out.push(Token::Identifier(buffer)),
         State::NumberLiteral { buffer_whole, buffer_fraction, decimal_placed }
-            => out.push(Token::Literal(Literal::Number(buffer_whole, decimal_placed.then(|| buffer_fraction)))),
+            => out.push(Token::Literal(Literal::Number(buffer_whole, decimal_placed.then_some(buffer_fraction)))),
         State::StringLiteral { buffer, place:_ }
             => out.push(Token::Literal(Literal::String(buffer)))
     }
