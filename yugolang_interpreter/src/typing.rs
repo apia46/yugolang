@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use yugolang_parser::Scope;
 
 #[derive(Debug)]
@@ -32,13 +33,13 @@ pub struct FunctionType {
     output: Box<Type>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Direction { Right, Left }
 
 #[derive(Debug, Clone)]
 pub struct Priority(Vec<PriorityLayer>);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd)] // allegedly bad practice
 enum PriorityLayer { NegativeInfinity, Finite(i64), Infinity }
 
 impl Value {
@@ -50,6 +51,11 @@ impl Value {
             Self::Float(_) => Type::Float,
             Self::Function(f) => Type::Function(f.type_info.clone())
         }
+    }
+}
+impl From<&Value> for Type{
+    fn from(value: &Value) -> Type{
+        value.get_type()
     }
 }
 
@@ -80,3 +86,30 @@ impl Priority {
     pub fn inf()          -> Self { Priority(vec![PriorityLayer::Infinity]) }
 }
 
+impl Ord for PriorityLayer{
+    fn cmp(&self, other: &Self) -> Ordering{
+    match self{
+            Self::NegativeInfinity => {
+                if let Self::NegativeInfinity = other{
+                    Ordering::Equal
+                } else {
+                    Ordering::Less
+                }
+            },
+            Self::Finite(number) => {
+                match other{
+                    Self::Infinity => Ordering::Less,
+                    Self::NegativeInfinity => Ordering::Greater,
+                    Self::Finite(other_number) => number.cmp(other_number),
+                }
+            },
+            Self::Infinity => {
+                if let Self::Infinity = other{
+                    Ordering::Equal
+                }else{
+                    Ordering::Greater
+                }
+            },
+        }
+    }
+}   
