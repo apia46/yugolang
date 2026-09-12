@@ -157,7 +157,7 @@ let something = func (input: int) -> int {
         let b = (if input == 2 3
         else if input == 1 {
             // where am i?
-            return 9 from something;
+            return from something 9;
         } else 5);
         return return b - 6; };
     input
