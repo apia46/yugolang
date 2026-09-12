@@ -8,6 +8,7 @@ pub enum Value {
     Int(i64),
     Float(f64),
     Function(Function),
+    Identifier(String),
 }
 
 #[derive(Debug)]
@@ -22,7 +23,8 @@ pub enum Type {
     String,
     Int,
     Float,
-    Function(FunctionType)
+    Function(FunctionType),
+    Identifier,
 }
 
 #[derive(Debug, Clone)]
@@ -49,7 +51,8 @@ impl Value {
             Self::String(_) => Type::String,
             Self::Int(_) => Type::Int,
             Self::Float(_) => Type::Float,
-            Self::Function(f) => Type::Function(f.type_info.clone())
+            Self::Function(f) => Type::Function(f.type_info.clone()),
+            Self::Identifier(_) => Type::Identifier
         }
     }
 }
@@ -77,6 +80,9 @@ impl FunctionType {
             preferred_direction: Direction::Left,
             priority, input: Box::new(input), output: Box::new(output),
         }
+    }
+    pub fn curry_lr(priority:Priority, left:Type, right:Type, output:Type) -> FunctionType {
+        FunctionType::new_l(priority.clone(), left, Type::Function(FunctionType::new_r(priority, right, output)))
     }
 }
 
