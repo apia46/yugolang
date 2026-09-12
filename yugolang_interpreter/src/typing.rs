@@ -7,6 +7,7 @@ pub enum Value {
     String(String),
     Int(i64),
     Float(f64),
+    Boolean(bool),
     Function(Function),
     Identifier(String),
 }
@@ -14,7 +15,20 @@ pub enum Value {
 #[derive(Debug)]
 pub struct Function {
     type_info: FunctionType,
-    definition: Scope,
+    definition: FunctionDefinition,
+}
+
+#[derive(Debug, Clone)]
+pub struct Identifier {
+    id_type: Type,
+    name: String,
+}
+
+pub type MagicFunction = Box<dyn FnMut(&mut super::state::State) -> Result<Value, super::Error>>;
+
+pub enum FunctionDefinition {
+    Scope(Scope),
+    Magic(MagicFunction),
 }
 
 #[derive(Debug, Clone)]
@@ -23,6 +37,7 @@ pub enum Type {
     String,
     Int,
     Float,
+    Boolean,
     Function(FunctionType),
     Identifier,
 }
@@ -31,7 +46,7 @@ pub enum Type {
 pub struct FunctionType {
     preferred_direction: Direction,
     priority: Priority,
-    input: Box<Type>,
+    input: Box<Identifier>,
     output: Box<Type>,
 }
 
@@ -51,6 +66,7 @@ impl Value {
             Self::String(_) => Type::String,
             Self::Int(_) => Type::Int,
             Self::Float(_) => Type::Float,
+            Self::Boolean(_) => Type::Boolean,
             Self::Function(f) => Type::Function(f.type_info.clone()),
             Self::Identifier(_) => Type::Identifier
         }
@@ -63,26 +79,35 @@ impl From<&Value> for Type{
 }
 
 impl Function {
-    pub fn new(type_info:FunctionType, definition:Scope) -> Self {
+    pub fn new(type_info:FunctionType, definition:FunctionDefinition) -> Self {
         Self { type_info, definition }
     }
 }
 
+impl Identifier {
+    pub fn new(id_type:Type, name:impl Into<String>) -> Self {
+        Self { id_type, name: name.into() }
+    }
+}
+
 impl FunctionType {
-    pub fn new_r(priority:Priority, input:Type, output:Type) -> Self {
+    pub fn new_r(priority:Priority, input:Identifier, output:Type) -> Self {
         Self {
             preferred_direction: Direction::Right,
             priority, input: Box::new(input), output: Box::new(output),
         }
     }
-    pub fn new_l(priority:Priority, input:Type, output:Type) -> Self {
+
+    pub fn new_l(priority:Priority, input:Identifier, output:Type) -> Self {
         Self {
             preferred_direction: Direction::Left,
             priority, input: Box::new(input), output: Box::new(output),
         }
     }
-    pub fn curry_lr(priority:Priority, left:Type, right:Type, output:Type) -> FunctionType {
-        FunctionType::new_l(priority.clone(), left, Type::Function(FunctionType::new_r(priority, right, output)))
+
+    /// returns a function with the left priority + 1 so that it always triggers next
+    pub fn curry_lr(priority:i64, output:Type, left:Identifier, right:Identifier) -> FunctionType {
+        FunctionType::new_l(Priority::new(priority), left, Type::Function(FunctionType::new_r(Priority::new(priority+1), right, output)))
     }
 }
 
@@ -118,4 +143,15 @@ impl Ord for PriorityLayer{
             },
         }
     }
-}   
+}
+
+impl std::fmt::Debug for FunctionDefinition {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut t = f.debug_tuple("FunctionDefinition");
+        match self {
+            FunctionDefinition::Scope(scope) => t.field(scope),
+            FunctionDefinition::Magic(_) => t.field(&"<Magic>"),
+        }.finish()
+    }
+}
+

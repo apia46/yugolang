@@ -4,8 +4,15 @@ use state::State;
 mod state;
 mod typing;
 mod global;
+mod priorities;
 
-fn interpret(ast:Scope) {
+pub enum Error {
+    TypeError,
+    MissingVariableError,
+    DivideByZeroError,
+}
+
+pub fn interpret(ast:Scope) {
     let state = State::new();
     interpret_scope(ast, state);
 }

@@ -1,5 +1,5 @@
 mod lexer;
-use lexer::{BraceType, Token, TokenizeError};
+use lexer::{Token, TokenizeError};
 
 #[derive(Debug)]
 pub struct Scope {
@@ -15,6 +15,7 @@ pub enum Expression {
     Literal(Literal),
     Identifier(String),
     Scope(Box<Scope>),
+    ClosureArgs(Box<Scope>),
 }
 
 #[derive(Debug)]
@@ -52,7 +53,7 @@ fn parse_tokens(tokens:Vec<Token>) -> Result<Scope, ParseError> {
 
 type TokensIter = std::vec::IntoIter<Token>;
 
-fn parse_scope(mut tokens:TokensIter, until:Option<BraceType>) -> Result<(TokensIter, Scope), ParseError> {
+fn parse_scope(mut tokens:TokensIter, until:Option<Token>) -> Result<(TokensIter, Scope), ParseError> {
     let mut statements = vec![];
     let mut buffer = vec![];
     loop {
@@ -62,15 +63,24 @@ fn parse_scope(mut tokens:TokensIter, until:Option<BraceType>) -> Result<(Tokens
         };
         match token {
             Token::LBrace(brace_type) => {
-                let (next_tokens, scope) = parse_scope(tokens, Some(brace_type))?;
+                let (next_tokens, scope) = parse_scope(tokens, Some(Token::RBrace(brace_type)))?;
                 tokens = next_tokens;
                 buffer.push(Expression::Scope(Box::new(scope)));
             },
             Token::RBrace(brace_type) => {
-                if let Some(expected) = until {
+                if let Some(Token::RBrace(expected)) = until {
                     if expected == brace_type { break }
                     else { return Err(ParseError::UnmatchedBraces) }
                 } else { return Err(ParseError::UnopenedBrace) }
+            },
+            Token::Bar => {
+                if matches!(until, Some(Token::Bar)) {
+                    break;
+                } else {
+                    let (next_tokens, scope) = parse_scope(tokens, Some(Token::Bar))?;
+                    tokens = next_tokens;
+                    buffer.push(Expression::ClosureArgs(Box::new(scope)));
+                }
             },
             Token::Semicolon => {
                 statements.push(Statement(buffer));

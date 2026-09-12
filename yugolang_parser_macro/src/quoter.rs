@@ -33,15 +33,19 @@ impl ToTokens for Expression {
             Expression::Literal(inner) => {
                 let inner = inner.to_tokens();
                 quote! { yugolang_parser::Expression::Literal(#inner) }
+            },            Expression::Identifier(inner) => {
+                let inner = inner.to_tokens();
+                quote! { yugolang_parser::Expression::Identifier(#inner) }
             },
             Expression::Scope(inner) => {
                 let inner = inner.to_tokens();
                 quote! { yugolang_parser::Expression::Scope(#inner) }
             },
-            Expression::Identifier(inner) => {
+            Expression::ClosureArgs(inner) => {
                 let inner = inner.to_tokens();
-                quote! { yugolang_parser::Expression::Identifier(#inner) }
-            },
+                quote! { yugolang_parser::Expression::ClosureArgs(#inner) }
+
+            }
         }
     }
 }

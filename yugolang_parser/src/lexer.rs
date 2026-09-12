@@ -4,6 +4,7 @@ use peek_again::Peekable;
 pub enum Token {
     LBrace(BraceType),
     RBrace(BraceType),
+    Bar,
     Identifier(String),
     Literal(Literal),
     Semicolon,
@@ -66,7 +67,7 @@ fn update_state(char:char, peek:Option<char>, state:&mut State) -> Result<(),Tok
     match state {
         State::Idle => {
             match (char, peek) {
-                ('('|')'|'['|']'|'{'|'}'|';', _) => {},
+                ('('|')'|'['|']'|'{'|'}'|';'|'|', _) => {},
                 _ if char.is_whitespace() => {},
                 ('/', Some('/')) => *state = State::Comment,
                 ('.', Some('0'..'9')) | ('0'..'9', _) => *state = State::NumberLiteral { buffer_whole: String::new(), buffer_fraction: String::new(), decimal_placed: false },
@@ -91,6 +92,7 @@ fn consume_char(char:char, out:&mut Vec<Token>, state:&mut State) -> Result<(),T
             ']' => out.push(Token::RBrace(BraceType::Square)),
             '}' => out.push(Token::RBrace(BraceType::Curly)),
             ';' => out.push(Token::Semicolon),
+            '|' => out.push(Token::Bar),
             _ => {}
         },
         State::Comment => {},
