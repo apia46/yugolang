@@ -91,7 +91,7 @@ impl<T:ToTokens> ToTokens for Box<T> {
 
 impl ToTokens for String {
     fn to_tokens(&self) -> TokenStream {
-        quote! { String::new(#self) }
+        quote! { String::from(#self) }
     }
 }
 
