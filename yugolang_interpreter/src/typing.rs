@@ -1,14 +1,15 @@
+use std::rc::Rc;
 use std::cmp::Ordering;
 use yugolang_parser::Scope;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Value {
     Unit,
     String(String),
     Int(i64),
     Float(f64),
     Boolean(bool),
-    Function(Function),
+    Function(Rc<Function>),
     Identifier(String),
 }
 
@@ -46,7 +47,7 @@ pub enum Type {
 pub struct FunctionType {
     preferred_direction: Direction,
     priority: Priority,
-    input: Box<Identifier>,
+    input: Vec<Identifier>,
     output: Box<Type>,
 }
 
@@ -91,23 +92,38 @@ impl Identifier {
 }
 
 impl FunctionType {
-    pub fn new_r(priority:Priority, input:Identifier, output:Type) -> Self {
+    pub fn scope(output:Type) -> Self {
         Self {
             preferred_direction: Direction::Right,
-            priority, input: Box::new(input), output: Box::new(output),
+            priority:Priority::minus_inf(), input: vec![], output: Box::new(output)
         }
     }
 
-    pub fn new_l(priority:Priority, input:Identifier, output:Type) -> Self {
+    pub fn new_r(priority:Priority, input:Vec<Identifier>, output:Type) -> Self {
+        Self {
+            preferred_direction: Direction::Right,
+            priority, input, output: Box::new(output),
+        }
+    }
+
+    pub fn new_l(priority:Priority, input:Vec<Identifier>, output:Type) -> Self {
         Self {
             preferred_direction: Direction::Left,
-            priority, input: Box::new(input), output: Box::new(output),
+            priority, input, output: Box::new(output),
         }
     }
 
     /// returns a function with the left priority + 1 so that it always triggers next
-    pub fn curry_lr(priority:i64, output:Type, left:Identifier, right:Identifier) -> FunctionType {
+    pub fn curry_lr(priority:i64, output:Type, left:Vec<Identifier>, right:Vec<Identifier>) -> FunctionType {
         FunctionType::new_l(Priority::new(priority), left, Type::Function(FunctionType::new_r(Priority::new(priority+1), right, output)))
+    }
+
+    pub fn curry_rr(priority:i64, output:Type, first:Vec<Identifier>, second:Vec<Identifier>) -> FunctionType {
+        FunctionType::new_r(Priority::new(priority), first, Type::Function(FunctionType::new_r(Priority::new(priority), second, output)))
+    }
+
+    pub fn curry_ll(priority:i64, output:Type, first:Vec<Identifier>, second:Vec<Identifier>) -> FunctionType {
+        FunctionType::new_l(Priority::new(priority), first, Type::Function(FunctionType::new_l(Priority::new(priority), second, output)))
     }
 }
 

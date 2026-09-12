@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 common_macros = "0.1.1"
+nonempty = "0.12.0"
 yugolang_parser = { path = "../yugolang_parser" }
 yugolang_parser_macro = { path = "../yugolang_parser_macro" }
 
