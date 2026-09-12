@@ -118,7 +118,7 @@ None;
 ```
 As a function argument, a possibly lazy-evaluated value is typed `&T`, which means it can take a T, or a {T}, or a {{T}}, etc.<br>
 ```
-let get_number_with_side_effects = func () -> int {
+let get_number_with_side_effects = {
     print "These are the side effects";
     5
 }
