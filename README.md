@@ -90,7 +90,7 @@ Some("hello") else "bye";
 // finally, "bye" is discarded
 "hello";
 ```
-Yugolang lacks the traditional concept of keywords and uses functions instead. Control flow constructs are usually functions that return functions that call functions
+In fact, all keywords are functions.
 ```
 let repeater = for 0..10;
 // this for returns a function that will call a given function ten times, passing successive integers to it
