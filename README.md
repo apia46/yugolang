@@ -83,6 +83,19 @@ Some("hello") else "bye";
 // finally, "bye" is discarded
 "hello";
 ```
+Yugolang lacks the traditional concept of keywords and uses functions instead. Control flow constructs are usually functions that return functions that call functions
+```
+let repeater = for 0..10;
+// this for returns a function that will call a given function ten times, passing successive integers to it
+(print)repeater;
+// prints out numbers from 0 to 10
+let print_doubled = func [a: int] ->(
+    // you can use any kind of brace, but that doesn't mean you should
+    print {a*2}
+)
+repeater [print_doubled];
+// prints numbers from 0 to 20, skipping odd ones
+```
 ## Lazy Evaluation
 Scopes are passed directly to functions, and are evaluated only when they are needed.<br>
 This prevents functions with side-effects from being called when they are to be skipped over.
