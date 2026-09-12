@@ -9,8 +9,8 @@ pub mod control_flow {
     pub const IF:i64 = -1;
 }
 
-pub const LET:i64 = -1;
-pub const SET:i64 = -2;
+pub const LET:i64 = -9;
+pub const SET:i64 = -10;
 
 pub const FN:i64 = 0;
 

@@ -37,8 +37,8 @@ You can configure the compiler lint `function_called_in_wrong_direction` to warn
 ```
 Functions have different priorities. If there is a chain of functions and expressions, they are resolved in order of decreasing priority.
 ```
-// * and its return value have priority X
-// + and its return value have priority X+1
+// * has priority -4, and returns a function that has priority -3
+// + has priority -6, and returns a function that has priority -5
 // Therefore,
 3 + 2 * 7;
 // is parsed like so:
@@ -62,6 +62,13 @@ let add = func (a:int, b:int) -> int {
     a+b
 }
 ```
+By default, a function has priority 0, and prefers to consume rightwards. You can specify otherwise like so:
+```
+let add = func [L,3] (a:int, b:int) -> int {
+    a+b
+}
+```
+
 ## Parsing
 In Yugolang, a statement is a set of expressions and functions, ending with a semicolon.<br>
 ```
@@ -109,7 +116,7 @@ if (2 + 3 == 4) {print("hello")};
 // the |x| {None} function recieves {print("hello")}, which it throws away without evaluating
 None;
 ```
-A lazy evaluated value, marked by `&`, is either a value, or a 0-argument function that returns a lazy evaluated value
+As a function argument, a possibly lazy-evaluated value is typed `&T`, which means it can take a T, or a {T}, or a {{T}}, etc.<br>
 ```
 let get_number_with_side_effects = func () -> int {
     print "These are the side effects";
@@ -117,8 +124,42 @@ let get_number_with_side_effects = func () -> int {
 }
 let maybe_print = func {condition: &bool, value: &int} [
     ([value]print) if condition;
-    // print has higher priority than if, so it needs to be put in parentheses
+    // when the if checks condition, it gets evaluated. Note that value does not get evaluated.
+    // if condition was typed bool, this would work the same.
+    // however, if value was typed int, it would get evaluated immediately upon being passed to the function.
 ]
 maybe_print (false, get_number_with_side_effects)
 // doesn't print anything at all
+```
+In actuality, lazy evaluated values are equivalent to functions with zero arguments.<br>
+This means that || {x} does not define a closure, but {x} does.<br>
+We shall use "closure" and "function" and "scope" mostly interchangeably throughout this document, but to be more precise:<br>
+* A scope is a function that does not take any arguments.<br>
+* A closure is a locally defined function that captures surrounding variables.<br>
+## Superreturns
+Like in other languages, you can use `return` to return from a function before its result.<br>
+However, in Yugolang, you are often within a scope and would like to return out of the outer function.<br>
+To achieve this, you can chain returns together.
+```
+let something = func (input: int) -> int {
+    if (input == 1) {
+        return return 3; // returns out of something
+    } else {
+        return input + 1; // returns out of the... elseresult... thing...
+    } let b =;
+    return b; // which would be input + 1
+}
+```
+If you lose track of all the layers, you can just name the function you want to return out of.<br>
+```
+let something = func (input: int) -> int {
+    if input < 4 {
+        let b = (if input == 2 3
+        else if input == 1 {
+            // where am i?
+            return 9 from something;
+        } else 5);
+        return return b - 6; }
+    input
+}
 ```
