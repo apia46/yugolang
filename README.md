@@ -115,9 +115,10 @@ let get_number_with_side_effects = func () -> int {
     print "These are the side effects";
     5
 }
-let maybe_print = func {condition: bool, value: &int} [
-    (print[value]) if condition;
+let maybe_print = func {condition: &bool, value: &int} [
+    ([value]print) if condition;
+    // print has higher priority than if, so it needs to be put in parentheses
 ]
 maybe_print (false, get_number_with_side_effects)
-// doesn't print anything
+// doesn't print anything at all
 ```
