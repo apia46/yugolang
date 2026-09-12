@@ -91,7 +91,7 @@ let repeater = for 0..10;
 // prints out numbers from 0 to 10
 let print_doubled = func [a: int] ->(
     // you can use any kind of brace, but that doesn't mean you should
-    print {a*2}
+    print {a*2};
 )
 repeater [print_doubled];
 // prints numbers from 0 to 20, skipping odd ones
@@ -108,4 +108,16 @@ if (2 + 3 == 4) {print("hello")};
 |x| {None} {print("hello")};
 // the |x| {None} function recieves {print("hello")}, which it throws away without evaluating
 None;
+```
+A lazy evaluated value, marked by `&`, is either a value, or a 0-argument function that returns a lazy evaluated value
+```
+let get_number_with_side_effects = func () -> int {
+    print "These are the side effects";
+    5
+}
+let maybe_print = func {condition: bool, value: &int} [
+    (print[value]) if condition;
+]
+maybe_print (false, get_number_with_side_effects)
+// doesn't print anything
 ```
