@@ -121,14 +121,14 @@ As a function argument, a possibly lazy-evaluated value is typed `&T`, which mea
 let get_number_with_side_effects = {
     print "These are the side effects";
     5
-}
+};
 let maybe_print = func {condition: &bool, value: &int} [
     ([value]print) if condition;
     // when the if checks condition, it gets evaluated. Note that value does not get evaluated.
     // if condition was typed bool, this would work the same.
     // however, if value was typed int, it would get evaluated immediately upon being passed to the function.
-]
-maybe_print (false, get_number_with_side_effects)
+];
+maybe_print (false, get_number_with_side_effects);
 // doesn't print anything at all
 ```
 In actuality, lazy evaluated values are equivalent to functions with zero arguments.<br>
@@ -159,7 +159,7 @@ let something = func (input: int) -> int {
             // where am i?
             return 9 from something;
         } else 5);
-        return return b - 6; }
+        return return b - 6; };
     input
 }
 ```
