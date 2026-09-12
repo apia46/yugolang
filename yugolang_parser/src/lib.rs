@@ -1,14 +1,14 @@
-#![expect(dead_code)]
-use crate::lexer::{self, BraceType, Token};
+mod lexer;
+use lexer::{BraceType, Token, TokenizeError};
 
 #[derive(Debug)]
 pub struct Scope {
-    statements:Vec<Statement>,
-    result:Option<Statement>,
+    pub statements:Vec<Statement>,
+    pub result:Option<Statement>,
 }
 
 #[derive(Debug)]
-pub struct Statement(Vec<Expression>);
+pub struct Statement(pub Vec<Expression>);
 
 #[derive(Debug)]
 pub enum Expression {
@@ -30,15 +30,29 @@ pub enum ParseError {
     UnmatchedBraces,
     UnopenedBrace,
     NumberParseError(String),
+    NumberDecimalDividerDoubled,
+    StringLiteralPointlessEscape,
+    StringLiteralUnclosed,
+    InvalidSymbol(char),
 }
 
-pub fn parse(tokens:Vec<Token>) -> Result<Scope, ParseError> {
+pub fn parse(input:&str) -> Result<Scope, ParseError> {
+    let tokens = lexer::tokenize(input).or_else(|e| Err(match e {
+        TokenizeError::NumberDecimalDividerDoubled => ParseError::NumberDecimalDividerDoubled,
+        TokenizeError::StringLiteralPointlessEscape => ParseError::StringLiteralPointlessEscape,
+        TokenizeError::StringLiteralUnclosed => ParseError::StringLiteralUnclosed,
+        TokenizeError::InvalidSymbol(char) => ParseError::InvalidSymbol(char),
+    }))?;
+    parse_tokens(tokens)
+}
+
+fn parse_tokens(tokens:Vec<Token>) -> Result<Scope, ParseError> {
     Ok(parse_scope(tokens.into_iter(), None)?.1)
 }
 
 type TokensIter = std::vec::IntoIter<Token>;
 
-pub fn parse_scope(mut tokens:TokensIter, until:Option<BraceType>) -> Result<(TokensIter, Scope), ParseError> {
+fn parse_scope(mut tokens:TokensIter, until:Option<BraceType>) -> Result<(TokensIter, Scope), ParseError> {
     let mut statements = vec![];
     let mut buffer = vec![];
     loop {

@@ -4,5 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+yugolang_parser = {path = "yugolang_parser"}
+yugolang_parser_macro = {path = "yugolang_parser_macro"}
+yugolang_interpreter = {path = "yugolang_interpreter"}
 clap = {version = "4.6.6", features = ["derive"]}
-peek-again = "0.5.2"

@@ -1,0 +1,10 @@
+[package]
+name = "yugolang_interpreter"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+common_macros = "0.1.1"
+yugolang_parser = { path = "../yugolang_parser" }
+yugolang_parser_macro = { path = "../yugolang_parser_macro" }
+

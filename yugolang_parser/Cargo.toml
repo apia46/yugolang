@@ -1,0 +1,9 @@
+[package]
+name = "yugolang_parser"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+peek-again = "0.5.2"
+serde = { version = "1.0.229", features = ["derive"] }
+

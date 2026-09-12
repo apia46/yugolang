@@ -1,8 +1,7 @@
 use clap::Parser;
 use std::{fs, path::PathBuf};
 
-mod lexer;
-mod parser;
+use parser::lexer;
 
 #[derive(Parser, Debug)]
 #[command()]
