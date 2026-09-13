@@ -25,11 +25,12 @@ pub struct Identifier {
     name: String,
 }
 
-pub type MagicFunction = Box<dyn FnMut(&mut super::state::State) -> Result<Value, super::Error>>;
+pub type MagicFunction = fn(&mut super::state::State) -> Result<Value, super::Error>;
 
 pub enum FunctionDefinition {
     Scope(Scope),
     Magic(MagicFunction),
+    MagicCurried(Box<Function>)
 }
 
 #[derive(Debug, Clone)]
@@ -99,6 +100,12 @@ impl FunctionType {
         }
     }
 
+    pub fn new(preferred_direction:Direction, priority:Priority, input:Vec<Identifier>, output:Type) -> Self {
+        Self {
+            preferred_direction, priority, input, output: Box::new(output),
+        }
+    }
+
     pub fn new_r(priority:Priority, input:Vec<Identifier>, output:Type) -> Self {
         Self {
             preferred_direction: Direction::Right,
@@ -111,19 +118,6 @@ impl FunctionType {
             preferred_direction: Direction::Left,
             priority, input, output: Box::new(output),
         }
-    }
-
-    /// returns a function with the left priority + 1 so that it always triggers next
-    pub fn curry_lr(priority:i64, output:Type, left:Vec<Identifier>, right:Vec<Identifier>) -> FunctionType {
-        FunctionType::new_l(Priority::new(priority), left, Type::Function(FunctionType::new_r(Priority::new(priority+1), right, output)))
-    }
-
-    pub fn curry_rr(priority:i64, output:Type, first:Vec<Identifier>, second:Vec<Identifier>) -> FunctionType {
-        FunctionType::new_r(Priority::new(priority), first, Type::Function(FunctionType::new_r(Priority::new(priority), second, output)))
-    }
-
-    pub fn curry_ll(priority:i64, output:Type, first:Vec<Identifier>, second:Vec<Identifier>) -> FunctionType {
-        FunctionType::new_l(Priority::new(priority), first, Type::Function(FunctionType::new_l(Priority::new(priority), second, output)))
     }
 }
 
@@ -167,6 +161,7 @@ impl std::fmt::Debug for FunctionDefinition {
         match self {
             FunctionDefinition::Scope(scope) => t.field(scope),
             FunctionDefinition::Magic(_) => t.field(&"<Magic>"),
+            FunctionDefinition::MagicCurried(_) => t.field(&"<MagicCurried>"),
         }.finish()
     }
 }

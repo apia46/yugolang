@@ -3,7 +3,7 @@ use common_macros::hash_map;
 
 use crate::Error;
 use crate::priorities;
-use crate::typing::{Value, Function, Identifier, Type, FunctionType, FunctionDefinition, Priority};
+use crate::typing::{Value, Function, Identifier, Type, FunctionType, Direction, FunctionDefinition, Priority};
 use crate::state::{State, Frame, Variable};
 
 pub fn global_frame() -> Frame {
@@ -25,6 +25,33 @@ pub fn global_frame() -> Frame {
 
 fn function(type_info:FunctionType, definition:FunctionDefinition) -> Variable {
     Variable::new(Value::Function(Function::new(type_info, definition).into()))
+}
+
+fn curried_function_lr(priority:i64, outer_input:Vec<Identifier>, inner_input:Vec<Identifier>, output_type:Type, definition:FunctionDefinition) -> Variable {
+    let inner_type = FunctionType::new(Direction::Right, Priority::new(priority+1), inner_input, output_type);
+    let outer_type = FunctionType::new(Direction::Left, Priority::new(priority), outer_input,
+        Type::Function(inner_type.clone()));
+    Variable::new(Value::Function(Function::new(outer_type, FunctionDefinition::MagicCurried(
+        Function::new(inner_type, definition).into()
+    )).into()))
+}
+
+fn curried_function_rr(priority:i64, outer_input:Vec<Identifier>, inner_input:Vec<Identifier>, output_type:Type, definition:FunctionDefinition) -> Variable {
+    let inner_type = FunctionType::new(Direction::Right, Priority::new(priority), inner_input, output_type);
+    let outer_type = FunctionType::new(Direction::Right, Priority::new(priority), outer_input,
+        Type::Function(inner_type.clone()));
+    Variable::new(Value::Function(Function::new(outer_type, FunctionDefinition::MagicCurried(
+        Function::new(inner_type, definition).into()
+    )).into()))
+}
+
+fn curried_function_ll(priority:i64, outer_input:Vec<Identifier>, inner_input:Vec<Identifier>, output_type:Type, definition:FunctionDefinition) -> Variable {
+    let inner_type = FunctionType::new(Direction::Left, Priority::new(priority), inner_input, output_type);
+    let outer_type = FunctionType::new(Direction::Left, Priority::new(priority), outer_input,
+        Type::Function(inner_type.clone()));
+    Variable::new(Value::Function(Function::new(outer_type, FunctionDefinition::MagicCurried(
+        Function::new(inner_type, definition).into()
+    )).into()))
 }
 
 fn get_arg<'a>(s:&'a State, name: &'static str) -> Result<&'a Variable, Error> {
@@ -50,27 +77,29 @@ get_arg!(get_arg_identifier, String, arg, Value::Identifier(arg));
 macro_rules! make_binary_op {
     ($fn_name:ident, $priority:expr, $out_type:expr, $a:ident, $b:ident, $result:expr) => {
         fn $fn_name() -> Variable {
-            function(FunctionType::curry_lr($priority, $out_type,
-                    vec![Identifier::new(Type::Int, "a")],
-                    vec![Identifier::new(Type::Int, "b")]
-                ), FunctionDefinition::Magic(Box::new(|s| {
+            curried_function_lr($priority,
+                vec![Identifier::new(Type::Int, "a")],
+                vec![Identifier::new(Type::Int, "b")],
+                $out_type,
+                FunctionDefinition::Magic(|s| {
                     let $a = get_arg_int(s, "a")?;
                     let $b = get_arg_int(s, "b")?;
                     Ok($result)
-            })))
+            }))
         }
     };
     ($fn_name:ident, $priority:expr, $out_type:expr, $a:ident, $b:ident, $result:expr, $extra:stmt) => {
         fn $fn_name() -> Variable {
-            function(FunctionType::curry_lr($priority, $out_type,
-                    vec![Identifier::new(Type::Int, "a")],
-                    vec![Identifier::new(Type::Int, "b")]
-                ), FunctionDefinition::Magic(Box::new(|s| {
+            curried_function_lr($priority,
+                vec![Identifier::new(Type::Int, "a")],
+                vec![Identifier::new(Type::Int, "b")],
+                $out_type,
+                FunctionDefinition::Magic(|s| {
                     let $a = get_arg_int(s, "a")?;
                     let $b = get_arg_int(s, "b")?;
                     $extra
                     Ok($result)
-            })))
+            }))
         }
     };
 }
@@ -85,11 +114,11 @@ make_binary_op!(fn_gte, priorities::binary_op::COMPARE, Type::Boolean, a, b, Val
 make_binary_op!(fn_lte, priorities::binary_op::COMPARE, Type::Boolean, a, b, Value::Boolean(a<=b));
 
 fn fn_if() -> Variable {
-    function(FunctionType::curry_rr(priorities::control_flow::IF, Type::Function(FunctionType::scope(Type::Unit)),
-            vec![Identifier::new(Type::Boolean, "cond")],
-                                        // no fancy types yet so the if cant return anything yet
-            vec![Identifier::new(Type::Function(FunctionType::scope(Type::Unit)), "then")]
-        ), FunctionDefinition::Magic(Box::new(|s| {
+    curried_function_rr(priorities::control_flow::IF,
+        vec![Identifier::new(Type::Boolean, "cond")],
+        vec![Identifier::new(Type::Function(FunctionType::scope(Type::Unit)), "then")],
+        Type::Function(FunctionType::scope(Type::Unit)), // no fancy types yet so the if cant return anything yet
+        FunctionDefinition::Magic(|s| {
             let cond = get_arg_boolean(s, "cond")?;
             let then = get_arg_function(s, "then")?.clone();
             if *cond {
@@ -97,41 +126,42 @@ fn fn_if() -> Variable {
             } else {
                 Ok(Value::Unit) // unit is identical to empty scope
             }
-    })))
+    }))
 }
 
 fn fn_let() -> Variable {
     function(FunctionType::new_r(Priority::new(priorities::LET),
             vec![Identifier::new(Type::Identifier, "id_name")], Type::Identifier,
         ),
-        FunctionDefinition::Magic(Box::new(|s| {
+        FunctionDefinition::Magic(|s| {
             let id_name = get_arg_identifier(s, "id_name")?.clone();
             s.declare_variable(&id_name);
             Ok(Value::Identifier(id_name))
-    })))
+    }))
 }
 
 fn fn_set() -> Variable {
-    function(FunctionType::curry_lr(priorities::SET, Type::Unit,
-            vec![Identifier::new(Type::Identifier, "name")],
-            vec![Identifier::new(Type::Int, "value")]
-        ), FunctionDefinition::Magic(Box::new(|s| {
+    curried_function_lr(priorities::SET,
+        vec![Identifier::new(Type::Identifier, "name")],
+        vec![Identifier::new(Type::Int, "value")],
+        Type::Unit,
+        FunctionDefinition::Magic(|s| {
             let name = get_arg_identifier(s, "name")?.clone(); // its disjoint! grr
             let value = get_arg(s, "value")?.get().clone(); // should this be cloned?
             s.set_variable(&name, value)?;
             Ok(Value::Unit)
-    })))
+    }))
 }
 
 fn fn_print() -> Variable {
     function(FunctionType::new_r(Priority::new(priorities::FN),
             vec![Identifier::new(Type::String, "value")], Type::Unit,
         ),
-        FunctionDefinition::Magic(Box::new(|s| {
+        FunctionDefinition::Magic(|s| {
             let value = get_arg_string(s, "value")?;
             println!("{value}");
             Ok(Value::Unit)
-    })))
+    }))
 }
 
 
