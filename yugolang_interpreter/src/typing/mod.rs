@@ -80,6 +80,8 @@ impl Function {
     pub fn new(type_info:FunctionType, definition:FunctionDefinition) -> Self {
         Self { type_info, definition }
     }
+
+    pub fn get_type(&self) -> &FunctionType { &self.type_info }
 }
 
 impl Identifier {
@@ -115,6 +117,8 @@ impl FunctionType {
             priority, input, output: Box::new(output),
         }
     }
+
+    pub fn get_priority(&self) -> &Priority { &self.priority }
 }
 
 impl std::fmt::Debug for FunctionDefinition {
