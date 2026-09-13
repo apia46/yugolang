@@ -20,6 +20,8 @@ pub fn global_frame() -> Frame {
         "let".into() => fn_let(),
         "=".into() => fn_set(),
         "print".into() => fn_print(),
+        "true".into() => fn_true(),
+        "false".into() => fn_false(),
     })
 }
 
@@ -158,3 +160,14 @@ fn fn_print() -> Variable {
     }))
 }
 
+fn fn_true() -> Variable {
+    function(FunctionType::scope(Type::Boolean), 
+    FunctionDefinition::Magic(|_| Ok(Value::Boolean(true)))
+    )
+}
+
+fn fn_false() -> Variable{
+    function(FunctionType::scope(Type::Boolean),
+        FunctionDefinition::Magic(|_| Ok(Value::Boolean(false)))
+    )
+}
