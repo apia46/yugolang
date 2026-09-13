@@ -10,7 +10,7 @@ pub mod control_flow {
 }
 
 pub const LET:i64 = -9;
-pub const SET:i64 = -10;
+pub const SET:i64 = -11;
 
 pub const FN:i64 = 0;
 

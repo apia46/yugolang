@@ -1,6 +1,9 @@
 use std::rc::Rc;
-use std::cmp::Ordering;
 use yugolang_parser::Scope;
+
+pub use priority::Priority;
+
+mod priority;
 
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -30,7 +33,7 @@ pub type MagicFunction = fn(&mut super::state::State) -> Result<Value, super::Er
 pub enum FunctionDefinition {
     Scope(Scope),
     Magic(MagicFunction),
-    MagicCurried(Box<Function>)
+    MagicCurried(Box<FunctionDefinition>)
 }
 
 #[derive(Debug, Clone)]
@@ -54,13 +57,6 @@ pub struct FunctionType {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Direction { Right, Left }
-
-#[derive(Debug, Clone)]
-pub struct Priority(Vec<PriorityLayer>);
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd)] // allegedly bad practice
-enum PriorityLayer { NegativeInfinity, Finite(i64), Infinity }
-
 impl Value {
     pub fn get_type(&self) -> Type {
         match self {
@@ -117,40 +113,6 @@ impl FunctionType {
         Self {
             preferred_direction: Direction::Left,
             priority, input, output: Box::new(output),
-        }
-    }
-}
-
-impl Priority {
-    pub fn new(value:i64) -> Self { Priority(vec![PriorityLayer::Finite(value)]) }
-    pub fn minus_inf()    -> Self { Priority(vec![PriorityLayer::NegativeInfinity]) }
-    pub fn inf()          -> Self { Priority(vec![PriorityLayer::Infinity]) }
-}
-
-impl Ord for PriorityLayer{
-    fn cmp(&self, other: &Self) -> Ordering{
-    match self{
-            Self::NegativeInfinity => {
-                if let Self::NegativeInfinity = other{
-                    Ordering::Equal
-                } else {
-                    Ordering::Less
-                }
-            },
-            Self::Finite(number) => {
-                match other{
-                    Self::Infinity => Ordering::Less,
-                    Self::NegativeInfinity => Ordering::Greater,
-                    Self::Finite(other_number) => number.cmp(other_number),
-                }
-            },
-            Self::Infinity => {
-                if let Self::Infinity = other{
-                    Ordering::Equal
-                }else{
-                    Ordering::Greater
-                }
-            },
         }
     }
 }

@@ -30,28 +30,22 @@ fn function(type_info:FunctionType, definition:FunctionDefinition) -> Variable {
 fn curried_function_lr(priority:i64, outer_input:Vec<Identifier>, inner_input:Vec<Identifier>, output_type:Type, definition:FunctionDefinition) -> Variable {
     let inner_type = FunctionType::new(Direction::Right, Priority::new(priority+1), inner_input, output_type);
     let outer_type = FunctionType::new(Direction::Left, Priority::new(priority), outer_input,
-        Type::Function(inner_type.clone()));
-    Variable::new(Value::Function(Function::new(outer_type, FunctionDefinition::MagicCurried(
-        Function::new(inner_type, definition).into()
-    )).into()))
+        Type::Function(inner_type));
+    Variable::new(Value::Function(Function::new(outer_type, FunctionDefinition::MagicCurried(definition.into())).into()))
 }
 
 fn curried_function_rr(priority:i64, outer_input:Vec<Identifier>, inner_input:Vec<Identifier>, output_type:Type, definition:FunctionDefinition) -> Variable {
     let inner_type = FunctionType::new(Direction::Right, Priority::new(priority), inner_input, output_type);
     let outer_type = FunctionType::new(Direction::Right, Priority::new(priority), outer_input,
-        Type::Function(inner_type.clone()));
-    Variable::new(Value::Function(Function::new(outer_type, FunctionDefinition::MagicCurried(
-        Function::new(inner_type, definition).into()
-    )).into()))
+        Type::Function(inner_type));
+    Variable::new(Value::Function(Function::new(outer_type, FunctionDefinition::MagicCurried(definition.into())).into()))
 }
 
 fn curried_function_ll(priority:i64, outer_input:Vec<Identifier>, inner_input:Vec<Identifier>, output_type:Type, definition:FunctionDefinition) -> Variable {
     let inner_type = FunctionType::new(Direction::Left, Priority::new(priority), inner_input, output_type);
     let outer_type = FunctionType::new(Direction::Left, Priority::new(priority), outer_input,
-        Type::Function(inner_type.clone()));
-    Variable::new(Value::Function(Function::new(outer_type, FunctionDefinition::MagicCurried(
-        Function::new(inner_type, definition).into()
-    )).into()))
+        Type::Function(inner_type));
+    Variable::new(Value::Function(Function::new(outer_type, FunctionDefinition::MagicCurried(definition.into())).into()))
 }
 
 fn get_arg<'a>(s:&'a State, name: &'static str) -> Result<&'a Variable, Error> {
@@ -163,5 +157,4 @@ fn fn_print() -> Variable {
             Ok(Value::Unit)
     }))
 }
-
 
