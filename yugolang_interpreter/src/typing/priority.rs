@@ -1,12 +1,12 @@
 use std::cmp::Ordering;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
+#[derive(Debug, Clone)]
 pub struct Priority {
     value: PriorityLayer,
     next: Option<Box<Priority>>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd)] // allegedly bad practice
+#[derive(Debug, Clone)] 
 enum PriorityLayer { NegativeInfinity, Finite(i64), Infinity }
 
 impl Priority {
@@ -27,6 +27,17 @@ impl Ord for Priority {
         }
     }
 }
+impl PartialOrd for Priority{
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Eq for Priority{}
+impl PartialEq for Priority{
+    fn eq(&self, other: &Self) -> bool{
+        self.cmp(other) == Ordering::Equal
+    }
+}
 
 impl Ord for PriorityLayer{
     fn cmp(&self, other: &Self) -> Ordering {
@@ -38,4 +49,14 @@ impl Ord for PriorityLayer{
         }
     }
 }
-
+impl PartialOrd for PriorityLayer{
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Eq for PriorityLayer{}
+impl PartialEq for PriorityLayer{
+    fn eq(&self, other: &Self) -> bool{
+        self.cmp(other) == Ordering::Equal
+    }
+}
