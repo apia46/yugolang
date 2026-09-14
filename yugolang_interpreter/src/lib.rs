@@ -35,12 +35,13 @@ fn interpret_scope(scope:Scope, state:&mut State) -> Result<Option<Value>, Error
     })
 }
 fn interpret_statement(Statement(expressions):Statement, state:&mut State) -> Result<Value, Error> {
-    let mut expressions = expressions.clone(); // ughhhh
-                                                                // i think we should work with references
-                                                                // and have the inner scope be in an
-                                                                // Rc instead of a block but im not sure
-                                                                // we need a shallowly mutable copy here
-                                                                // for the in-place operations
+    // let mut expressions = expressions.clone(); // ughhhh
+    //                                                             // i think we should work with references
+    //                                                             // and have the inner scope be in an            the what? -k
+    //                                                             // Rc instead of a block but im not sure
+    //                                                             // we need a shallowly mutable copy here
+    //                                                             // for the in-place operations
+    let mut expressions: Vec<_> = expressions.iter().collect();
     loop {
         let Some((mut function_index, evaluate_details)) = function_to_evaluate(&expressions, &state)? else {
             todo!()
@@ -53,14 +54,14 @@ fn interpret_statement(Statement(expressions):Statement, state:&mut State) -> Re
             EvaluateDetails::Arguments(function, direction) => {
                 expressions.remove(function_index);
                 if matches!(direction, Direction::Left) { function_index -= 1 };
-                let argument = interpret_as(&expressions.remove(function_index), function.get_inputs().iter().map(|i| i.get_type()).collect(), state)?;
+                let argument = interpret_as(&expressions.remove(function_index), function.get_inputs().get(0).expect("Arguments function with no arguments").get_type(), state)?;
                 function.evaluate(argument)
             }
         };
     }
 }
 
-fn function_to_evaluate<'a>(expressions:&'a Vec<Expression>, state:&'a State) -> Result<Option<(usize, EvaluateDetails<'a>)>, Error> {
+fn function_to_evaluate<'a>(expressions: &[&'a Expression], state:&'a State) -> Result<Option<(usize, EvaluateDetails<'a>)>, Error> {
     let mut best_value = None;
     let mut best = None;
     let mut index:usize = 0;
@@ -87,7 +88,7 @@ enum EvaluateDetails<'a> {
     Arguments(FunctionInterpretation<'a>, Direction),
 }
 
-fn get_evaluate_details<'a>(expressions:&Vec<Expression>, index:usize, function:FunctionInterpretation<'a>, state:&State) -> Result<Option<EvaluateDetails<'a>>, Error> {
+fn get_evaluate_details<'a>(expressions: &[&Expression], index:usize, function:FunctionInterpretation<'a>, state:&State) -> Result<Option<EvaluateDetails<'a>>, Error> {
     let mut direction = function.get_direction();
     let input_types = function.get_inputs();
     if input_types.is_empty() { return Ok(Some(EvaluateDetails::NoArguments(function))) }
@@ -104,12 +105,6 @@ fn get_evaluate_details<'a>(expressions:&Vec<Expression>, index:usize, function:
     Ok(None)
 }
 
-enum FunctionInterpretation<'a> {
-    Function(Rc<Function>),
-    EmptyScope,
-    Scope(&'a Scope),
-    ClosureArgs(&'a Scope),
-}
 
 fn interpret_as_function<'a>(expression:&'a Expression, state:&'a State) -> Result<Option<FunctionInterpretation<'a>>, Error> {
     Ok(Some(match expression {
@@ -135,6 +130,13 @@ fn interpret_as(expression:&Expression, interpret_type:&Type, state:&State) -> R
     todo!()
 }
 
+enum FunctionInterpretation<'a> {
+    Function(Rc<Function>),
+    EmptyScope,
+    Scope(&'a Scope),
+    ClosureArgs(&'a Scope),
+}
+
 impl FunctionInterpretation<'_> {
     fn get_priority(&self) -> Priority {
         todo!()
@@ -150,6 +152,13 @@ impl FunctionInterpretation<'_> {
 
     fn evaluate(self, argument:Value) -> Value {
         todo!()
+    }
+    fn get_inputs(&self) -> &[Identifier]{
+        match self{
+            Self::EmptyScope | Self::Scope(_) => &[],
+            Self::Function(fun) => fun.get_type().get_input(),
+            Self::ClosureArgs(_) => todo!("idk what a ClosureArgs is")
+        }
     }
 }
 

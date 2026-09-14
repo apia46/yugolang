@@ -141,6 +141,8 @@ impl FunctionType {
     }
 
     pub fn get_priority(&self) -> &Priority { &self.priority }
+
+    pub fn get_input(&self) -> &[Identifier] { &self.input }
 }
 
 impl std::fmt::Debug for FunctionDefinition {
