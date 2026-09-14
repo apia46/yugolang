@@ -30,7 +30,7 @@ fn function(type_info:FunctionType, definition:FunctionDefinition) -> Variable {
 }
 
 fn curried_function_lr(priority:i64, outer_input:Vec<Identifier>, inner_input:Vec<Identifier>, output_type:Type, definition:FunctionDefinition) -> Variable {
-    let inner_type = FunctionType::new(Direction::Right, Priority::new(priority+1), inner_input, output_type);
+    let inner_type = FunctionType::new(Direction::Right, Priority::new(priority), inner_input, output_type);
     let outer_type = FunctionType::new(Direction::Left, Priority::new(priority), outer_input,
         Type::Function(inner_type));
     Variable::new(Value::Function(Function::new(outer_type, FunctionDefinition::MagicCurried(definition.into())).into()))

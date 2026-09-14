@@ -57,6 +57,23 @@ pub struct FunctionType {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Direction { Right, Left }
+
+impl Direction {
+    pub fn to_offset(&self) -> usize {
+        match self {
+            Self::Right => 1,
+            Self::Left => usize::MAX,
+        }
+    }
+
+    pub fn other_way(&self) -> Self {
+        match self {
+            Self::Right => Self::Left,
+            Self::Left => Self::Right,
+        }
+    }
+}
+
 impl Value {
     pub fn get_type(&self) -> Type {
         match self {
@@ -70,6 +87,7 @@ impl Value {
         }
     }
 }
+
 impl From<&Value> for Type{
     fn from(value: &Value) -> Type{
         value.get_type()
@@ -87,6 +105,10 @@ impl Function {
 impl Identifier {
     pub fn new(id_type:Type, name:impl Into<String>) -> Self {
         Self { id_type, name: name.into() }
+    }
+
+    pub fn get_type(&self) -> &Type {
+        &self.id_type
     }
 }
 
