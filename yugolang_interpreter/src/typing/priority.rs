@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
 #[derive(Debug, Clone)]
-pub struct Priority {
+pub struct Priority { // why is this a linked list
     value: PriorityLayer,
     next: Option<Box<Priority>>,
 }

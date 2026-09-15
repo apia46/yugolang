@@ -1,15 +1,14 @@
 use clap::Parser;
+use yugolang_interpreter::interpret;
 use std::{fs, path::PathBuf};
 
 #[derive(Parser, Debug)]
 #[command()]
 enum Args {
     Input {
-        #[arg(short)]
         input:String
     },
     File {
-        #[arg(short)]
         path: PathBuf
     },
 }
@@ -22,5 +21,9 @@ fn main() {
     };
     let parse = yugolang_parser::parse(&input).unwrap();
     print!("{parse:?}");
+    match interpret(parse).unwrap(){
+        Some(result) => eprintln!("Interpretation returned {result:?}"),
+        None => {} 
+    }
 }
 

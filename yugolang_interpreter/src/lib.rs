@@ -10,26 +10,30 @@ mod typing;
 mod global;
 mod priorities;
 
+#[derive(Debug)]
 pub enum Error {
     TypeError,
     MissingVariableError,
     DivideByZeroError,
 }
 
-pub fn interpret(ast:Scope) -> Result<(), Error> {
+pub fn interpret(ast:Scope) -> Result<Option<Value>, Error> {
     let mut state = State::new();
-    interpret_scope(ast, &mut state)?;
-    Ok(())
+    Ok(interpret_scope(ast, &mut state)?)
 }
 
 fn interpret_scope(scope:Scope, state:&mut State) -> Result<Option<Value>, Error> {
     for statement in scope.statements {
+        eprintln!("Interpreting statement {statement:?}");
         interpret_statement(statement, state)?;
     }
     Ok(match scope.result {
-        Some(s) => match interpret_statement(s, state)? {
-            Value::Unit => None,
-            value => Some(value),
+        Some(s) => {
+            eprintln!("Interpreting result {s:?}");
+            match interpret_statement(s, state)? {
+                Value::Unit => None,
+                value => Some(value),
+            }
         },
         None => None,
     })
@@ -43,18 +47,23 @@ fn interpret_statement(Statement(expressions):Statement, state:&mut State) -> Re
     //                                                             // for the in-place operations
     let mut expressions: Vec<_> = expressions.iter().collect();
     loop {
+        eprintln!("\tCurrent state of ment: {expressions:?}");
         let Some((mut function_index, evaluate_details)) = function_to_evaluate(&expressions, &state)? else {
-            todo!()
+            todo!("Found no function to evaluate");
         };
+        eprintln!("\t\tEvaluating {:?}", expressions[function_index]);
         let result = match evaluate_details {
             EvaluateDetails::NoArguments(function) => {
+                eprintln!("\t\t\tIt takes no arguments");
                 expressions.remove(function_index);
                 function.evaluate(Value::Unit)
             },
             EvaluateDetails::Arguments(function, direction) => {
                 expressions.remove(function_index);
                 if matches!(direction, Direction::Left) { function_index -= 1 };
-                let argument = interpret_as(&expressions.remove(function_index), function.get_inputs().get(0).expect("Arguments function with no arguments").get_type(), state)?;
+                let argument_type = function.get_inputs().get(0).expect("Arguments function with no arguments").get_type();
+                eprintln!("\t\t\tIt takes an argument of type {argument_type:?}: {:?}", expressions[function_index]);
+                let argument = interpret_as(&expressions.remove(function_index), argument_type, state)?;
                 function.evaluate(argument)
             }
         };
@@ -123,7 +132,25 @@ fn interpret_as_function<'a>(expression:&'a Expression, state:&'a State) -> Resu
 }
 
 fn can_interpret_as(expression:&Expression, interpret_type:&Type, state:&State) -> Result<bool, Error> {
-    todo!()
+    use Expression as E;
+    match expression{
+        E::Literal(literal) => {
+            use Literal as L;
+            Ok(match literal{
+                L::Int(_) => matches!(interpret_type, Type::Int),
+                L::Float(_) => matches!(interpret_type, Type::Float),
+                L::String(_) => matches!(interpret_type, Type::String),
+            })
+        }
+        E::Identifier(ident) =>{
+            Ok(state.get_variable(ident).and_then(|var| (var.get().get_type() == *interpret_type).then_some(())).is_some())
+        }
+        E::Scope(scp) => {
+            let scp = scp.as_ref();
+            todo!("ill finish this tomorrow")
+        }
+        E::ClosureArgs(_) => todo!("ClosureArgs")
+    }
 }
 
 fn interpret_as(expression:&Expression, interpret_type:&Type, state:&State) -> Result<Value, Error> {
@@ -139,11 +166,19 @@ enum FunctionInterpretation<'a> {
 
 impl FunctionInterpretation<'_> {
     fn get_priority(&self) -> Priority {
-        todo!()
+        match self{
+            Self::EmptyScope | Self::Scope(_) => Priority::minus_inf(),
+            Self::Function(fun) => fun.get_type().get_priority().clone(), // this clone sucks
+            Self::ClosureArgs(_) => todo!("i have no idea what these are or how they're supposed to behave")
+        }
     }
     
     fn get_direction(&self) -> Direction {
-        todo!()
+        match self{
+            Self::EmptyScope | Self::Scope(_) => Direction::Right,
+            Self::Function(fun) => fun.get_type().get_direction(),
+            Self::ClosureArgs(_) => todo!("ClosureArgs")
+        }
     }
 
     fn get_input(&self) -> Type {

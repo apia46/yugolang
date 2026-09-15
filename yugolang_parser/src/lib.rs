@@ -36,14 +36,19 @@ pub enum ParseError {
     StringLiteralUnclosed,
     InvalidSymbol(char),
 }
+impl From<TokenizeError> for ParseError{
+    fn from(value: TokenizeError) -> Self {
+        match value{
+            TokenizeError::NumberDecimalDividerDoubled => ParseError::NumberDecimalDividerDoubled,
+            TokenizeError::StringLiteralPointlessEscape => ParseError::StringLiteralPointlessEscape,
+            TokenizeError::StringLiteralUnclosed => ParseError::StringLiteralUnclosed,
+            TokenizeError::InvalidSymbol(char) => ParseError::InvalidSymbol(char),
+        }
+    }
+}
 
 pub fn parse(input:&str) -> Result<Scope, ParseError> {
-    let tokens = lexer::tokenize(input).or_else(|e| Err(match e {
-        TokenizeError::NumberDecimalDividerDoubled => ParseError::NumberDecimalDividerDoubled,
-        TokenizeError::StringLiteralPointlessEscape => ParseError::StringLiteralPointlessEscape,
-        TokenizeError::StringLiteralUnclosed => ParseError::StringLiteralUnclosed,
-        TokenizeError::InvalidSymbol(char) => ParseError::InvalidSymbol(char),
-    }))?;
+    let tokens = lexer::tokenize(input)?;
     parse_tokens(tokens)
 }
 

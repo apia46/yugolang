@@ -18,11 +18,11 @@ pub enum Value {
 
 #[derive(Debug)]
 pub struct Function {
-    type_info: FunctionType,
+    type_info: FunctionType, // perhaps wrap this in a Rc because it gets cloned ?often?
     definition: FunctionDefinition,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Identifier {
     id_type: Type,
     name: String,
@@ -36,8 +36,8 @@ pub enum FunctionDefinition {
     MagicCurried(Box<FunctionDefinition>)
 }
 
-#[derive(Debug, Clone)]
-pub enum Type {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Type { // this too is a linked list. a trie even
     Unit,
     String,
     Int,
@@ -47,19 +47,12 @@ pub enum Type {
     Identifier,
 }
 
-#[derive(Debug, Clone)]
-pub struct FunctionType {
-    preferred_direction: Direction,
-    priority: Priority,
-    input: Vec<Identifier>,
-    output: Box<Type>,
-}
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)] // copy since it only has two states
 pub enum Direction { Right, Left }
 
 impl Direction {
-    pub fn to_offset(&self) -> usize {
+    pub fn to_offset(&self) -> usize { // what
         match self {
             Self::Right => 1,
             Self::Left => usize::MAX,
@@ -112,6 +105,14 @@ impl Identifier {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FunctionType {
+    preferred_direction: Direction,
+    priority: Priority,
+    input: Vec<Identifier>,
+    output: Box<Type>,
+}
+
 impl FunctionType {
     pub fn scope(output:Type) -> Self {
         Self {
@@ -143,6 +144,8 @@ impl FunctionType {
     pub fn get_priority(&self) -> &Priority { &self.priority }
 
     pub fn get_input(&self) -> &[Identifier] { &self.input }
+
+    pub fn get_direction(&self) -> Direction {self.preferred_direction}
 }
 
 impl std::fmt::Debug for FunctionDefinition {
