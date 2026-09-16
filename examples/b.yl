@@ -1,0 +1,4 @@
+let a = "Hi";
+let b = "Bye";
+let condition = true;
+a if condition else b

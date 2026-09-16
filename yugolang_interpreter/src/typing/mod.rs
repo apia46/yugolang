@@ -18,7 +18,7 @@ pub enum Value {
 
 #[derive(Debug)]
 pub struct Function {
-    type_info: FunctionType, // perhaps wrap this in a Rc because it gets cloned ?often?
+    type_info: FunctionType, // perhaps wrap this in a Rc because it gets cloned ?often? (at Value::get_type()))
     definition: FunctionDefinition,
 }
 

@@ -10,6 +10,12 @@ pub struct Scope {
 #[derive(Debug)]
 pub struct Statement(pub Vec<Expression>);
 
+impl Statement{
+    pub fn expressions(&self) -> &[Expression]{
+        &self.0
+    }
+}
+
 #[derive(Debug)]
 pub enum Expression {
     Literal(Literal),

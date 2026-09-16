@@ -1,9 +1,9 @@
 use std::rc::Rc;
-use yugolang_parser::{Scope, Statement, Expression, Literal};
+use yugolang_parser::{Expression, Literal, Scope as ParserScope}; // TODO: use a new kind of Expression with the new kind of Scope
 use state::State;
 use typing::{Function, Value, Priority, Direction, Identifier, Type};
 
-use crate::EvaluateDetails::NoArguments;
+// use crate::EvaluateDetails::NoArguments;
 
 mod state;
 mod typing;
@@ -17,20 +17,21 @@ pub enum Error {
     DivideByZeroError,
 }
 
-pub fn interpret(ast:Scope) -> Result<Option<Value>, Error> {
+pub fn interpret(ast: &mut Scope) -> Result<Option<Value>, Error> {
     let mut state = State::new();
-    Ok(interpret_scope(ast, &mut state)?)
+    Ok(ast.interpret_with_context(&mut state)?)
 }
 
-fn interpret_scope(scope:Scope, state:&mut State) -> Result<Option<Value>, Error> {
-    for statement in scope.statements {
+fn interpret_scope(scope: &ParserScope) -> Result<Option<Value>, Error> {
+    let mut state = State::new();
+    for statement in &scope.statements {
         eprintln!("Interpreting statement {statement:?}");
-        interpret_statement(statement, state)?;
+        interpret_statement(statement.expressions(), &mut state)?;
     }
-    Ok(match scope.result {
+    Ok(match &scope.result {
         Some(s) => {
             eprintln!("Interpreting result {s:?}");
-            match interpret_statement(s, state)? {
+            match interpret_statement(s.expressions(), &mut state)? {
                 Value::Unit => None,
                 value => Some(value),
             }
@@ -38,7 +39,8 @@ fn interpret_scope(scope:Scope, state:&mut State) -> Result<Option<Value>, Error
         None => None,
     })
 }
-fn interpret_statement(Statement(expressions):Statement, state:&mut State) -> Result<Value, Error> {
+
+fn interpret_statement(expressions: &[Expression], state:&mut State) -> Result<Value, Error> {
     // let mut expressions = expressions.clone(); // ughhhh
     //                                                             // i think we should work with references
     //                                                             // and have the inner scope be in an            the what? -k
@@ -48,7 +50,7 @@ fn interpret_statement(Statement(expressions):Statement, state:&mut State) -> Re
     let mut expressions: Vec<_> = expressions.iter().collect();
     loop {
         eprintln!("\tCurrent state of ment: {expressions:?}");
-        let Some((mut function_index, evaluate_details)) = function_to_evaluate(&expressions, &state)? else {
+        let Some((mut function_index, evaluate_details)) = function_to_evaluate(&expressions, state)? else {
             todo!("Found no function to evaluate");
         };
         eprintln!("\t\tEvaluating {:?}", expressions[function_index]);
@@ -70,7 +72,7 @@ fn interpret_statement(Statement(expressions):Statement, state:&mut State) -> Re
     }
 }
 
-fn function_to_evaluate<'a>(expressions: &[&'a Expression], state:&'a State) -> Result<Option<(usize, EvaluateDetails<'a>)>, Error> {
+fn function_to_evaluate<'a, 's>(expressions: &[&'a Expression], state:&'s mut State) -> Result<Option<(usize, EvaluateDetails<'a>)>, Error> {
     let mut best_value = None;
     let mut best = None;
     let mut index:usize = 0;
@@ -97,7 +99,7 @@ enum EvaluateDetails<'a> {
     Arguments(FunctionInterpretation<'a>, Direction),
 }
 
-fn get_evaluate_details<'a>(expressions: &[&Expression], index:usize, function:FunctionInterpretation<'a>, state:&State) -> Result<Option<EvaluateDetails<'a>>, Error> {
+fn get_evaluate_details<'a>(expressions: &[&Expression], index:usize, function:FunctionInterpretation<'a>, state:&mut State) -> Result<Option<EvaluateDetails<'a>>, Error> {
     let mut direction = function.get_direction();
     let input_types = function.get_inputs();
     if input_types.is_empty() { return Ok(Some(EvaluateDetails::NoArguments(function))) }
@@ -115,7 +117,7 @@ fn get_evaluate_details<'a>(expressions: &[&Expression], index:usize, function:F
 }
 
 
-fn interpret_as_function<'a>(expression:&'a Expression, state:&'a State) -> Result<Option<FunctionInterpretation<'a>>, Error> {
+fn interpret_as_function<'a, 's>(expression:&'a Expression, state:&'s State) -> Result<Option<FunctionInterpretation<'a>>, Error> {
     Ok(Some(match expression {
         Expression::Identifier(s) => {
             let Some(variable) = state.get_variable(s) else { return Err(Error::MissingVariableError) };
@@ -131,7 +133,8 @@ fn interpret_as_function<'a>(expression:&'a Expression, state:&'a State) -> Resu
     }))
 }
 
-fn can_interpret_as(expression:&Expression, interpret_type:&Type, state:&State) -> Result<bool, Error> {
+// what does this signature really mean
+fn can_interpret_as(expression:&Expression, interpret_type:&Type, state:&mut State) -> Result<bool, Error> {
     use Expression as E;
     match expression{
         E::Literal(literal) => {
@@ -147,7 +150,7 @@ fn can_interpret_as(expression:&Expression, interpret_type:&Type, state:&State) 
         }
         E::Scope(scp) => {
             let scp = scp.as_ref();
-            todo!("ill finish this tomorrow")
+            Ok(interpret_scope(scp)?.map(|v| v.get_type()).unwrap_or(Type::Unit) == *interpret_type)
         }
         E::ClosureArgs(_) => todo!("ClosureArgs")
     }
@@ -160,8 +163,8 @@ fn interpret_as(expression:&Expression, interpret_type:&Type, state:&State) -> R
 enum FunctionInterpretation<'a> {
     Function(Rc<Function>),
     EmptyScope,
-    Scope(&'a Scope),
-    ClosureArgs(&'a Scope),
+    Scope(&'a ParserScope),
+    ClosureArgs(&'a ParserScope),
 }
 
 impl FunctionInterpretation<'_> {
@@ -185,7 +188,7 @@ impl FunctionInterpretation<'_> {
         todo!()
     }
 
-    fn evaluate(self, argument:Value) -> Value {
+    fn evaluate(self, argument:Value) -> Value { 
         todo!()
     }
     fn get_inputs(&self) -> &[Identifier]{
@@ -197,3 +200,46 @@ impl FunctionInterpretation<'_> {
     }
 }
 
+#[derive(Debug)]
+pub struct Scope{
+    inner: yugolang_parser::Scope, 
+    return_cache: Option<Value>, // this miiight be premature optimization
+}
+
+impl Scope{
+    pub fn has_result(&self) -> bool {
+        self.inner.result.is_some()
+    }
+    pub fn return_type(&mut self, state: &mut State) -> Result<Type, Error>{
+        // there should be some way to do this without interpreting the whole ass scope
+        if !self.has_result(){
+            return Ok(Type::Unit)
+        }
+        Ok(self.interpret_with_context(state)?.unwrap().get_type()) // unwrap is ok because this is None only if there's no result, which the above if checks
+    }
+
+    fn interpret_with_context(&mut self, state: &mut State) -> Result<Option<Value>, Error> {
+        if let Some(value) = &self.return_cache{
+            return Ok(Some(value.clone())) // is this clone neccesary?
+        }
+        for statement in &self.inner.statements {
+            eprintln!("Interpreting statement {statement:?}");
+            interpret_statement(statement.expressions(), state)?;
+        }
+        Ok(match &self.inner.result {
+            Some(s) => {
+                eprintln!("Interpreting result {s:?}");
+                let result = interpret_statement(s.expressions(), state)?;
+                self.return_cache = Some(result.clone());
+                Some(result)
+            },
+            None => None,
+        })
+    }
+}
+
+impl From<yugolang_parser::Scope> for Scope{
+    fn from(value: yugolang_parser::Scope) -> Self {
+        Self { inner: value, return_cache: None }
+    }
+}

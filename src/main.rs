@@ -21,7 +21,8 @@ fn main() {
     };
     let parse = yugolang_parser::parse(&input).unwrap();
     print!("{parse:?}");
-    match interpret(parse).unwrap(){
+    let mut parse = parse.into();
+    match interpret(&mut parse).unwrap(){
         Some(result) => eprintln!("Interpretation returned {result:?}"),
         None => {} 
     }
