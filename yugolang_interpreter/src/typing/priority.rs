@@ -1,18 +1,19 @@
 use std::cmp::Ordering;
 
 #[derive(Debug, Clone)]
-pub struct Priority { // why is this a linked list
+pub struct Priority { // why is this a linked list?
     value: PriorityLayer,
     next: Option<Box<Priority>>,
 }
 
 #[derive(Debug, Clone)] 
-enum PriorityLayer { NegativeInfinity, Finite(i64), Infinity }
+pub enum PriorityLayer { NegativeInfinity, Finite(i64), Infinity }
 
 impl Priority {
     pub fn new(value:i64) -> Self { Self { value: PriorityLayer::Finite(value), next: None } }
     pub fn minus_inf()    -> Self { Self { value: PriorityLayer::NegativeInfinity, next: None } }
     pub fn inf()          -> Self { Self { value: PriorityLayer::Infinity, next: None } }
+    pub fn first(&self)   -> &PriorityLayer {&self.value}
 }
 
 impl Ord for Priority {
@@ -58,5 +59,15 @@ impl Eq for PriorityLayer{}
 impl PartialEq for PriorityLayer{
     fn eq(&self, other: &Self) -> bool{
         self.cmp(other) == Ordering::Equal
+    }
+}
+
+impl std::fmt::Display for PriorityLayer{
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        match self{
+            Self::Infinity => write!(f, "∞"),
+            Self::NegativeInfinity => write!(f, "-∞"),
+            Self::Finite(num) => write!(f, "{num}"),
+        }
     }
 }

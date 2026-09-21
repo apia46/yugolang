@@ -51,10 +51,10 @@ fn interpret_statement(Statement(expressions):Statement, state:&mut State) -> Re
         let Some((mut function_index, evaluate_details)) = function_to_evaluate(&expressions, &state)? else {
             todo!("Found no function to evaluate");
         };
-        eprintln!("\t\tEvaluating {:?}", expressions[function_index]);
+        eprintln!("\tEvaluating {:?}", expressions[function_index]);
         let result = match evaluate_details {
             EvaluateDetails::NoArguments(function) => {
-                eprintln!("\t\t\tIt takes no arguments");
+                eprintln!("\t\tIt takes no arguments");
                 expressions.remove(function_index);
                 function.evaluate(Value::Unit)
             },
@@ -62,7 +62,7 @@ fn interpret_statement(Statement(expressions):Statement, state:&mut State) -> Re
                 expressions.remove(function_index);
                 if matches!(direction, Direction::Left) { function_index -= 1 };
                 let argument_type = function.get_inputs().get(0).expect("Arguments function with no arguments").get_type();
-                eprintln!("\t\t\tIt takes an argument of type {argument_type:?}: {:?}", expressions[function_index]);
+                eprintln!("\t\tIt takes an argument of type {argument_type:?}: {:?}", expressions[function_index]);
                 let argument = interpret_as(&expressions.remove(function_index), argument_type, state)?;
                 function.evaluate(argument)
             }
@@ -70,19 +70,25 @@ fn interpret_statement(Statement(expressions):Statement, state:&mut State) -> Re
     }
 }
 
-fn function_to_evaluate<'a>(expressions: &[&'a Expression], state:&'a State) -> Result<Option<(usize, EvaluateDetails<'a>)>, Error> {
+fn function_to_evaluate<'a, 's>(expressions: &[&'a Expression], state:&'s State) -> Result<Option<(usize, EvaluateDetails<'a>)>, Error> {
     let mut best_value = None;
     let mut best = None;
     let mut index:usize = 0;
+    eprintln!("\t\tfinding function to evaluate in {expressions:?}");
     for expression in expressions {
-        let Some(function) = interpret_as_function(expression, state)? else { continue };
+        let Some(function) = interpret_as_function(expression, state)? else {
+            eprintln!("\t\t\t...it is not a function"); 
+            continue 
+        };
         let priority = function.get_priority();
+        eprintln!("\t\t\tits priority is {priority:?}");
         // if theres a tie, we want the rightmost leftwards function, or if not then the leftmost rightwards function.
         // therefore, we only take a rightwards function if its a new best and therefore the leftest
         // but we always take a leftwards function, since itll be more rightwards than whatever we had before
         if best_value.as_ref().is_none_or(|best| &priority > best
             || (&priority == best && matches!(function.get_direction(), Direction::Left))) {
             if let Some(details) = get_evaluate_details(expressions, index, function, state)? {
+                eprintln!("\t\t\t\twhich is higher than the previous best find");
                 best_value = Some(priority);
                 best = Some((index, details));
             }
@@ -104,7 +110,7 @@ fn get_evaluate_details<'a>(expressions: &[&Expression], index:usize, function:F
     let input_type = input_types.get(0).unwrap();
     assert!(input_types.len() == 1); // no arrays yet
     for _ in 0..2 {
-        if let Some(expression) = expressions.get(index+direction.to_offset()) {
+        if let Some(expression) = expressions.get(direction.to_offset().overflowing_add(index).0) {
             if can_interpret_as(expression, input_type.get_type(), state)? {
                 return Ok(Some(EvaluateDetails::Arguments(function, direction)));
             }
@@ -114,11 +120,16 @@ fn get_evaluate_details<'a>(expressions: &[&Expression], index:usize, function:F
     Ok(None)
 }
 
-
-fn interpret_as_function<'a>(expression:&'a Expression, state:&'a State) -> Result<Option<FunctionInterpretation<'a>>, Error> {
+// what does this signature mean?
+fn interpret_as_function<'a, 's>(expression:&'a Expression, state:&'s State) -> Result<Option<FunctionInterpretation<'a>>, Error> {
+    eprintln!("\t\t\tconsidering {expression:?}");
     Ok(Some(match expression {
         Expression::Identifier(s) => {
-            let Some(variable) = state.get_variable(s) else { return Err(Error::MissingVariableError) };
+            let Some(variable) = state.get_variable(s) else {
+                eprintln!{"\t\t\t\tthere is no such variable"};
+                // return Err(Error::MissingVariableError) 
+                return Ok(None)
+            };
             match variable.get() {
                 Value::Unit => FunctionInterpretation::EmptyScope,
                 Value::Function(f) => FunctionInterpretation::Function(f.clone()),

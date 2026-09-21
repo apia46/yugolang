@@ -1,9 +1,10 @@
-use std::rc::Rc;
+use std::{fmt::Display, rc::Rc};
 use yugolang_parser::Scope;
 
 pub use priority::Priority;
 
 mod priority;
+mod static_analysis;
 
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -47,15 +48,28 @@ pub enum Type { // this too is a linked list. a trie even
     Identifier,
 }
 
+impl Display for Type{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self{
+            Self::Unit => write!(f, "()"),
+            Self::String => write!(f, "string"),
+            Self::Int => write!(f, "integer"),
+            Self::Float => write!(f, "float"),
+            Self::Boolean => write!(f, "bool"),
+            Self::Function(fun) => write!(f, "{fun}"),
+            Self::Identifier => write!(f, "identifier"),
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)] // copy since it only has two states
 pub enum Direction { Right, Left }
 
 impl Direction {
-    pub fn to_offset(&self) -> usize { // what
+    pub fn to_offset(&self) -> usize {
         match self {
             Self::Right => 1,
-            Self::Left => usize::MAX,
+            Self::Left => usize::MAX, // meant to be overflowingly added
         }
     }
 
@@ -64,6 +78,15 @@ impl Direction {
             Self::Right => Self::Left,
             Self::Left => Self::Right,
         }
+    }
+}
+
+impl Display for Direction{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self{
+            Self::Left => "L",
+            Self::Right => "R", 
+        })
     }
 }
 
@@ -146,6 +169,12 @@ impl FunctionType {
     pub fn get_input(&self) -> &[Identifier] { &self.input }
 
     pub fn get_direction(&self) -> Direction {self.preferred_direction}
+}
+
+impl Display for FunctionType{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "func [{}, {}] ({:?}) -> {}", self.preferred_direction, self.priority.first(), self.input, self.output)
+    }
 }
 
 impl std::fmt::Debug for FunctionDefinition {
